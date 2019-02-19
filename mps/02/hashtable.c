@@ -104,8 +104,12 @@ void  ht_rehash(hashtable_t *ht, unsigned long newsize) {
 		bucket_t *b = ht->buckets[i];
 		while(b){
 			ht_put(newht, b->key, b->val);
+			bucket_t *c = b;
 			b = b->next;
+			free(c);
 		}
 	}
+	free(ht->buckets);
 	*ht = *newht;
+	free(newht);
 }
