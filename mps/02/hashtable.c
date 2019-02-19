@@ -91,7 +91,11 @@ void  ht_del(hashtable_t *ht, char *key) {
 	bucket_t *b = ht->buckets[idx];
 	while(b && b->next){
 		if (strcmp(b->next->key, key) == 0){
+			bucket_t *c = b->next;
 			b->next = b->next->next;
+			free(c->key);
+			free(c->val);
+			free(c);
 			return;
 		}
 		b = b->next;
