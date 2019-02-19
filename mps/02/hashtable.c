@@ -85,7 +85,11 @@ void free_hashtable(hashtable_t *ht) {
 void  ht_del(hashtable_t *ht, char *key) {
 	unsigned int idx = hash(key) % ht->size;
 	if (strcmp(ht->buckets[idx]->key,key) == 0){
+		bucket_t *c = ht->buckets[idx];
 		ht->buckets[idx] = ht->buckets[idx]->next;	
+		free(c->key);
+                free(c->val);
+                free(c);
 		return;
 	}	
 	bucket_t *b = ht->buckets[idx];
