@@ -22,7 +22,6 @@ hashtable_t *make_hashtable(unsigned long size) {
 }
 
 void ht_put(hashtable_t *ht, char *key, void *val) {
-  /* FIXME: the current implementation doesn't update existing entries */
   unsigned int idx = hash(key) % ht->size;
   bucket_t *b = ht->buckets[idx];
   while (b) {
@@ -71,7 +70,29 @@ void free_hashtable(hashtable_t *ht) {
 
 /* TODO */
 void  ht_del(hashtable_t *ht, char *key) {
+	unsigned int idx = hash(key) % ht->size;
+	if (strcmp(ht->buckets[idx]->key,key) == 0){
+		ht->buckets[idx] = ht->buckets[idx]->next;	
+		return;
+	}	
+	bucket_t *b = ht->buckets[idx];
+	while(b && b->next){
+		if (strcmp(b->next->key, key) == 0){
+			b->next = b->next->next;
+			return;
+		}
+		b = b->next;
+	}
 }
 
 void  ht_rehash(hashtable_t *ht, unsigned long newsize) {
+	hashtable_t *newht = make_hashtable(newsize);
+	for(int i=0; i<ht->size; i++) {
+		bucket_t *b = ht->buckets[i];
+		while(b){
+			ht_put(newht, b->key, b->val);
+			b = b->next;
+		}
+	}
+	*ht = *newht;
 }
