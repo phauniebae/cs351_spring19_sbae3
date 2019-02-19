@@ -26,6 +26,8 @@ void ht_put(hashtable_t *ht, char *key, void *val) {
   bucket_t *b = ht->buckets[idx];
   while (b) {
     if (strcmp(b->key, key) == 0) {
+	 free(b->val);
+	 free(key);
 	 b->val = val;
 	 return;
     }  
