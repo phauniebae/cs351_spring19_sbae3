@@ -193,6 +193,22 @@ void eval(char *cmdline)
 		}
 	}
 
+	//PARENT
+	if(!big){
+		addjob(jobs, pid, FG, cmdline);
+		safe_sigprocmask(SIG_UNBLOCK, &mask, NULL);
+		waitfg(pid);
+	}
+	else{
+		addjob(jobs,pid, BG, cmdline);
+		safe_sigprocmask(SIG_UNBLOCK, &mask, NULL);
+		printf("[%d] (%d) %s", pid2jid(pid), (int)pid, cmdline);
+	}
+   }
+   return;
+}
+
+
   bg = parseline(cmdline, argv);
   if (bg) {
     printf("background job requested\n");
