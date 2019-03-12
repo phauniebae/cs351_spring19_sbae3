@@ -209,16 +209,6 @@ void eval(char *cmdline)
 }
 
 
-  bg = parseline(cmdline, argv);
-  if (bg) {
-    printf("background job requested\n");
-  }
-  for (i=0; argv[i] != NULL; i++) {
-    printf("argv[%d]=%s%s", i, argv[i], (argv[i+1]==NULL)?"\n":", ");
-  }
-  return;
-}
-
 /* 
  * parseline - Parse the command line and build the argv array.
  * 
@@ -309,7 +299,45 @@ void do_bgfg(char **argv)
  	if(argv[1] == NULL){
 	  printf("%s commad requires PID or %%jobid\n", argv[0]);
 	  return;
+	}
+
+	if(!isdigit(argv[1][0] && argv[1][0] != '%'){
+		printf("%s: argument must be a PID or &&jobid\n", argv[0]);
+		return;
+	}
+
+	int is_job_id = (argv[1][0] == '%' ? 1 : 0);
+	struct job_t *givenjob;
+
+	if (is_job_id){
+		givenjob = getjobjid(jobs, atoi(&argv[1][1]));
+		if givenjob == NULL){
+			printf("%s: No such job\n" argv[1]);
+			return;
+		}
+	}
+	else{
+		givenjob = getjobpid(jobs, (pid_t)atoi(argv[1]));
+		if(givenjob == NULL){
+			printf("(%d): No such process\n", atoi(argv[1]));
+			return;
+		}
+	}
+
+	if(strcmp(argv[0], "bg") == 0){
+		givenjob->state = BG;
+		printf("[%d] (%d) %s", givenjob->jid, givenjob->pid, givenjob->cmdline);
+		safe_kill(-givenjob->pid, SIGCONT);
+	}
+	else{
+		givenjob->state = FG;
+		safe_kill(-givenjob->pid,SIGCONT);
+		waitfg(givenjob->pid);
+	}
+	
+	return;
 }
+
 
 /* 
  * waitfg - Block until process pid is no longer the foreground process
