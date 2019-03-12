@@ -167,6 +167,31 @@ void eval(char *cmdline)
    * want to replace most of it (at least the print statements). */
   int i, bg;
   char *argv[MAXARGS];
+  pid_t pid;
+  sigset_t mask;
+ 
+  strcpy(buf,cmdline);
+  bg = parseline(buf, argv);
+  if (argv[0] == NULL) {
+	return;
+  }
+  
+  if(!builtin_cmd(argv)){
+	// Blocking SIGCILD
+	safe_sigemptyset(&mask)
+	safe_sigaddset(&mask, SIGCHILD);
+	safe_sigpromask(SIG_BLACK, &mask, NULL);	
+
+	//CHILD
+	if((pid = safe_fork()) ==0){
+		safe_setpgid(0,0);
+		safe_sigpromask(SIG_UNBLOCK, &mask, NULL);
+
+		if(execve(argv[0], argv, environ) < 0){
+			printf("%s: Command not found\n", argv[0]);
+			exit(0);
+		}
+	}
 
   bg = parseline(cmdline, argv);
   if (bg) {
