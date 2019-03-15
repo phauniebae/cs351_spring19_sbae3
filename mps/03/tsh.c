@@ -83,6 +83,15 @@ void app_error(char *msg);
 typedef void handler_t(int);
 handler_t *Signal(int signum, handler_t *handler);
 
+//Additional functions to check return value of every system call 
+pid_t safe_fork(void);
+void safe_setpgid(pid_t pid, pid_t, pgid);
+void safe_kill(pid_t pid, int sig);
+
+void safe_sigempty(sigset_t *set);
+void safe_sigaddset(sigset_t *set, int signum);
+void safe_sigprocmask(int how, const sigset_t *set, sigset_t *oldest);
+
 /*
  * main - The shell's main routine 
  */
