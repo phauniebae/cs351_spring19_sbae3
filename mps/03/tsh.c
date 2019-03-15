@@ -393,6 +393,19 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
+	if(verbose) printf("sigint_handler: entering\n");
+
+	pid_t pid = pid(jobs);
+
+	if(pid != 0){
+		//This wil send SIGINT to every process in the same process group with pid
+		safe_kill(pid, sig); //signals to the entire foreground process group
+		if(verbose) prtinf("sigint_handler: JOB [%d] and its entire foreground job with the same process group are killed\n", (int)pid);
+	}
+
+	if(verbose) printf("sigint_handler: exiting\n");
+	return;
+
   return;
 }
 
