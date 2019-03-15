@@ -644,5 +644,18 @@ void sigquit_handler(int sig)
   exit(1);
 }
 
+//Adding some system call error handling functions: 
+pid_t safe_fork(void){
+	pid_t pid;
+	if((pid = fork()) < 0){
+		unix_error("fork error");
+	}
+	return pid;
+}
 
+void safe_kill(pid_t pid, int sig){
+	if(kill(pid, sig) < 0){
+		app_error("sigemptyset error");
+	}
+}
 
