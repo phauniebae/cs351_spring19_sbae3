@@ -296,29 +296,30 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
- 	if(argv[1] == NULL){
+
+ 	if(argv[1] == NULL){			//check to see if second argument exists
 	  printf("%s commad requires PID or %%jobid\n", argv[0]);
 	  return;
 	}
 
-	if(!isdigit(argv[1][0]) && argv[1][0] != '%'){
+	if(!isdigit(argv[1][0]) && argv[1][0] != '%'){	//Checks if second argument is valid
 		printf("%s: argument must be a PID or &&jobid\n", argv[0]);
 		return;
 	}
 
-	int is_job_id = (argv[1][0] == '%' ? 1 : 0);
+	int is_job_id = (argv[1][0] == '%' ? 1 : 0);	//PID or JID?
 	struct job_t *givenjob;
 
 	if (is_job_id){
-		givenjob = getjobjid(jobs, atoi(&argv[1][1]));
-		if (givenjob == NULL){
+		givenjob = getjobjid(jobs, atoi(&argv[1][1]));	//Get JID. pointer starts at second character
+		if (givenjob == NULL){	//check if JID alive
 			printf("%s: No such job\n" argv[1]);
 			return;
 		}
 	}
 	else{
-		givenjob = getjobpid(jobs, (pid_t)atoi(argv[1]));
-		if(givenjob == NULL){
+		givenjob = getjobpid(jobs, (pid_t)atoi(argv[1]));  //Get PID w second argument
+		if(givenjob == NULL){	//Check if given PID is there 
 			printf("(%d): No such process\n", atoi(argv[1]));
 			return;
 		}
@@ -330,9 +331,9 @@ void do_bgfg(char **argv)
 		safe_kill(-givenjob->pid, SIGCONT);	//Send SIGCONT signal 
 	}
 	else{
-		givenjob->state = FG;
-		safe_kill(-givenjob->pid,SIGCONT);
-		waitfg(givenjob->pid);
+		givenjob->state = FG;			//Change (BG ->FG) or (ST -> FG) 
+		safe_kill(-givenjob->pid,SIGCONT);	//Second SIGCONT signal 
+		waitfg(givenjob->pid);			// Wait for fgjob to finish
 	}
 	
 	return;
