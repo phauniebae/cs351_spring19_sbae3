@@ -348,7 +348,7 @@ void waitfg(pid_t pid)
 	while(1){
 	       if(pid != fgpid(jobs)){
 	       		if(verbose) printf("waitfg: Process (%d) no longer the fg process\n", (int) pid);
-	 	break;
+	 		break;
 		}
 		else{
 	 		sleep(1);
@@ -370,6 +370,19 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
+	//sigchld_handlr = use only one call to wait pid
+	//must reap all available zombie children
+	if(verbose) printf("sigchld_handler: entering\n");
+
+	pid_t pid;
+	int status;
+	int jobid;
+	
+	//function info: waitpid(pid_t pid, int *status, int options)
+	//if pid > 0: then the wait set is singleton child process whose process ID is = given PID 
+	//if pid = -1: then the wait set consists of all of the parent's child process 
+	
+	while((pid = waitpid(-1, &status
   return;
 }
 
