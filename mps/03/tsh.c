@@ -418,8 +418,10 @@ void sigchld_handler(int sig)
 		getjobpid(jobs, pid)->state = ST; //Change job status to stop 	
 		printf("Job [%d] (%d) stopped by signal %d\n", jobid, (int) pid, STOPSIG(status));
 	}
-
-  return;
+}
+	
+	if(verbose) printf("sigchld_handler: exiting\n");
+`	return;
 }
 
 /* 
