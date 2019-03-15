@@ -406,8 +406,7 @@ void sigint_handler(int sig)
 	if(verbose) printf("sigint_handler: exiting\n");
 	return;
 
-  return;
-}
+ }
 
 /*
  * sigtstp_handler - The kernel sends a SIGTSTP to the shell whenever
@@ -416,6 +415,13 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
+	pid_t pid = fgpid(jobs);
+
+	if(pid != 0){
+	// Sends SIGTSTP to every process in the same process group with pid 
+	safe_kill(-pid, sig); //signals to the entire foreground process group 
+	if(verbose) printf("sigtstp_handler: Job [%d] and its entire foreground jobs with the same process groups are killed\n", (int)pid;
+	}
   return;
 }
 
