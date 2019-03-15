@@ -301,7 +301,7 @@ void do_bgfg(char **argv)
 	  return;
 	}
 
-	if(!isdigit(argv[1][0] && argv[1][0] != '%'){
+	if(!isdigit(argv[1][0]) && argv[1][0] != '%'){
 		printf("%s: argument must be a PID or &&jobid\n", argv[0]);
 		return;
 	}
@@ -311,7 +311,7 @@ void do_bgfg(char **argv)
 
 	if (is_job_id){
 		givenjob = getjobjid(jobs, atoi(&argv[1][1]));
-		if givenjob == NULL){
+		if (givenjob == NULL){
 			printf("%s: No such job\n" argv[1]);
 			return;
 		}
@@ -325,9 +325,9 @@ void do_bgfg(char **argv)
 	}
 
 	if(strcmp(argv[0], "bg") == 0){
-		givenjob->state = BG;
+		givenjob->state = BG;			//Change (FG>BG) or (ST->BG)
 		printf("[%d] (%d) %s", givenjob->jid, givenjob->pid, givenjob->cmdline);
-		safe_kill(-givenjob->pid, SIGCONT);
+		safe_kill(-givenjob->pid, SIGCONT);	//Send SIGCONT signal 
 	}
 	else{
 		givenjob->state = FG;
