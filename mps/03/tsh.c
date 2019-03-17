@@ -698,3 +698,27 @@ void safe_kill(pid_t pid, int sig){
 	}
 }
 
+void safe_kill(pid_t pid, int sig){
+	if(kill(pid, sig) < 0){
+		unix_error("kill error");
+	}
+}
+
+void safe_sigemptyset(sigset_t *set){
+	if(sigemptyset(set) < 0){
+		app_error("sigemptyset error");
+	}
+}
+
+void safe_sigaddset(sigset_t *set, int signum){
+	if(sigaddset(set, signum) < 0){
+		app_error("sigaddset error");
+	}
+}
+
+void safe_sigprocmask(int how, const sigset_t *set, sigset_t *oldeset){
+	if(sigprocmask(how, set, oldset) < 0){
+		app_error("sigprocmask error");
+	}
+}
+
