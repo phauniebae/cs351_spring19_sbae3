@@ -22,7 +22,74 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
+	int i;
+	int j;
+	int row;
+	int column;
+	int diagonal = 0;
+	int temp = 0;
+
+	//there are three test cases N x M: 32  32, 64 x 64, and 61 x 67
+	if (N == 32){
+		for(column = 0; column < N; column += 8){ //iterate across block structure
+			for (row = 0; row < N; row += 8){
+				for(i = row; i < row + 8; i++){
+					for (j = column; j < column + 8; j++){
+						if(i != j){
+							B[j][i] = A[i][j];
+						} else{
+							//reduce conflict misses M < i*j in B by storing in temp instead of missing in B[j][i]
+							temp = A[i][j];
+							diagonal = i;
+						}
+					}
+					if (row == column){ //store diagonal element
+						B[diagonal][diagonal] = temp;
+					}
+				}
+			}
+		}
+	} else if (N == 64){
+	       for (column = 0; column < N; column += 4){
+	       		for (row = 0; row < N; row += 4){
+	 			for (i = row; i < row + 4; i++){ //iterate over rows
+					for (j = column; j < column + 4; j++){
+						if (i != j){ //if not a diagonal element 
+							B[j][i] = A[i][j];
+						} else{
+							temp = A[i][j];
+							diagonal = i;
+						}
+					}
+					if (row == column){
+						B[diagonal][diagonal] = temp;
+					}
+				}
+			}
+	       }
+	}
+	else{ //test case 61 x 67 may lead to segmentation fault when iterating over the row
+	//to avoid, we must check that J < N
+		for (column = 0; column < M; column += 16){ //same as above, iterating over columns 
+			for(row = 0; row < N; row += 16)}{
+				for (i = row; (i < row + 16) && (i < N); i++){
+					for(j = column; (j < column + 16) && (j < M); j++){
+						if (i != j){ //same as above
+							B[j][i] = A[i][j];
+						} else{
+							temp = A[i][j];
+							diagonal = i;
+						}
+					}
+					if (row == column){
+						B[diagonal][diagonal] = temp;
+					}
+				}
+			}
+		}
+	}
 }
+
 
 /* 
  * You can define additional transpose functions below. We've defined
