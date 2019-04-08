@@ -1,3 +1,5 @@
+//csim.c is a cache simulator that can replay traces from Valgrind and output statistics such as 
+//numebr of hits, misses and evictions. Replacement policy is LRU (least recently used)
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
@@ -7,7 +9,7 @@
 #include <math.h> //for exponentation to compute S and B
 
 typedef unsigned long long int mem_addr_t;
-
+//a struct for each set line (memory addresses) composed of valid bit, tag bit, and block offset data bytes
 typedef struct{
 	int valid;
 	int access_count; //counts last used lines in a set
@@ -24,7 +26,7 @@ typedef struct{
 typedef struct{
 	cache_set *sets;
 } cache;
-
+//a struct that groups cache parameters together
 typedef struct{
 	int s;//2**s cache sets
 	int b;//cachline block size 2**b bytes
@@ -38,12 +40,12 @@ typedef struct{
 } cache_param_t;
 
 int verbosity; //to use with -v
-
+//print usage info
 void printUsage(char* argv[]){
 	printf("Usage: %s [-hv] -s <num> -E <num> -b <num> -t <file>\n", argv[0]);
 	printf("Options:\n");
 	printf("  -h	     Print this help message.\n");
-	printf("  -v	     Optional verbose glaf.\n");
+	printf("  -v	     Optional verbose flag.\n");
 	printf("  -s <num>   Number of set index bits.\n");
 	printf("  -E <num>   Number of lines per set.\n");
 	printf("  -b <num>   Number of block offset bits.\n");
@@ -65,7 +67,7 @@ cache build_cache(long long num_sets, int num_lines, long long block_size){
 	int setIndex;
 	int lineIndex;
 
-	//from lab instructions, use mallov function to allocate storage
+	//from lab instructions, use malloc function to allocate storage
 	newCache.sets = (cache_set *) malloc(sizeof(cache_set) * num_sets);
 
 	//cache is an array of s sets with index 0 to s-1
@@ -90,7 +92,7 @@ cache build_cache(long long num_sets, int num_lines, long long block_size){
 void clear_cache(cache this_cache, long long num_sets, int num_lines, long long block_size){
 	int setIndex;
 
-	for(setIndex = 0; setIndex , num_sets; setIndex ++){
+	for(setIndex = 0; setIndex < num_sets; setIndex ++){
 		cache_set set = this_cache.sets[setIndex];
 		if(set.lines != NULL){
 			free(set.lines);
@@ -110,7 +112,7 @@ int get_empty_line(cache_set set, cache_param_t par){
 	int num_lines = par.E;
 	int i;
 
-	for(i=0; i < num_lines; i++){
+	for(i=0; i < num_lines; i ++){
 		line = set.lines[i];
 		if(line.valid == 0){
 			return i;
@@ -173,7 +175,7 @@ cache_param_t simulate_cache (cache this_cache, cache_param_t par, mem_addr_t ad
 	int tag_size = (64 - (par.s + par.b));
 
 	unsigned long long temp = address << (tag_size);
-	unsigned long long setIndex = tamp >> (tag_size + par.b);
+	unsigned long long setIndex = temp >> (tag_size + par.b);
 
 	mem_addr_t input_tag = address >> (par.s + par.b);
 
@@ -181,9 +183,10 @@ cache_param_t simulate_cache (cache this_cache, cache_param_t par, mem_addr_t ad
 
 	for(lineIndex = 0; lineIndex < num_lines; lineIndex ++){
 		set_line line = query_set.lines[lineIndex];
+		
 		if(line.valid){
 			if(line.tag == input_tag){ //found the right tag - cache hit
-			line,access_count++;
+			line.access_count++;
 			par.hits++;
 			query_set.lines[lineIndex] = line;
 			}
@@ -213,7 +216,7 @@ cache_param_t simulate_cache (cache this_cache, cache_param_t par, mem_addr_t ad
 		//update valid/tag bits with the input cache's at the empty line
 		query_set.lines[empty_line_index].tag = input_tag;
 		query_set.lines[empty_line_index].valid = 1;
-		query_set.lines[empty_line_index].access_count = used_lines[1] + 1
+		query_set.lines[empty_line_index].access_count = used_lines[1] + 1;
 	}
 
 	free(used_lines);
@@ -277,9 +280,44 @@ int main(int argc, char **argv)
 	    exit(1);
     }
 
+    //compute S and B based on information passed in; S = 2^s and B = 2^b 
+    num_sets = pow(2.0, par.s);
+    block_size = bit_pow(par.b);
+    par.hits = 0;
+    par.misses = 0;
+    par.evictions = 0;
 
+    this_cache = build_cache(num_sets, par.E, block_size);//build_cache takes as input sets, lines, and blocks
 
+    read_trace = fopen(trace_file, "r");
 
-    printSummary(0, 0, 0);
+    //rest of simulator routine reads commands in
+    if(read_trace != NULL){
+	    while (fscanf(read_trace, " %c %llx,%d", &cmd, &address, &size) == 3){
+		switch(cmd){
+			case 'I':
+			break;
+			case 'L':
+				par = simulate_cache(this_cache, par, address);
+			break;
+			case 'S':
+				par = simulate_cache(this_cache, par, address);
+			break;
+			case 'M':
+				par = simulate_cache(this_cache, par, address);
+				par = simulate_cache(this_cache, par, address);
+			break;
+			default;
+			break;
+		}
+	   }
+    }
+
+    //print out real results
+    printSummary(par.hits, par.misses, par.evictions);
+
+    //clean up cache resources
+    clear_cache(this_cache, num_sets, par.E, block_size);
+    fclose(read_trace);
     return 0;
 }
