@@ -71,7 +71,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 	else{ //test case 61 x 67 may lead to segmentation fault when iterating over the row
 	//to avoid, we must check that J < N
 		for (column = 0; column < M; column += 16){ //same as above, iterating over columns 
-			for(row = 0; row < N; row += 16)}{
+			for(row = 0; row < N; row += 16) {
 				for (i = row; (i < row + 16) && (i < N); i++){
 					for(j = column; (j < column + 16) && (j < M); j++){
 						if (i != j){ //same as above

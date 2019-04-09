@@ -185,11 +185,11 @@ cache_param_t simulate_cache (cache this_cache, cache_param_t par, mem_addr_t ad
 		set_line line = query_set.lines[lineIndex];
 		
 		if(line.valid){
-			if(line.tag == input_tag){ //found the right tag - cache hit
-			line.access_count++;
-			par.hits++;
-			query_set.lines[lineIndex] = line;
-			}
+            if (line.tag == input_tag) { //found the right tag - cache hit
+                line.access_count++;
+                par.hits++;
+                query_set.lines[lineIndex] = line;
+            }
 		} else if(!(line.valid) && (cache_full)){
 			cache_full = 0;
 		}
@@ -307,7 +307,7 @@ int main(int argc, char **argv)
 				par = simulate_cache(this_cache, par, address);
 				par = simulate_cache(this_cache, par, address);
 			break;
-			default;
+		    default:
 			break;
 		}
 	   }
