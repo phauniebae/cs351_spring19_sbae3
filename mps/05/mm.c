@@ -1,3 +1,4 @@
+p
 /*
  * mm-naive.c - The fastest, least memory-efficient malloc package.
  */
@@ -61,9 +62,35 @@ blockHdr *LAST_LIST = NULL; //keep track of the very last list
  * mm_init - initialize the malloc package.
  */
 int mm_init(void)
-{
-  return 0;
+	//in order to initialize, I will create the header which will point to free blocks of various sizes
+	blockHdr *free_list_head = (blockHdr *) mem_sbrk(NUM_OF_FREE_LISTS * BLK_HDR_SIZE + BLK_FTR_SIZE);
+
+	if(free_list_head < o){
+		return -1;
+	}
+
+	//create the heads of the circularly linked double linked lists and set each list's previous pointer to itself
+	
+	int i;
+	blockHdr *curr_free_list_head = free_ist_head;
+	for(i=0; i<NUM_OF_FREE_LISTS; i++){
+		curr_free_list_head -> size = 1;
+		curr_free_list_head -> prior_p = curr_free_list_head;
+		curr_free_list_head -> next+p = curr_free_list_head;
+		LAST_LIST = curr_free_list_head; //keeps track of the last list for later use
+		curr_free_list_head = (blockHdr *)((char *)curr_free_list_head + BLK_HDR_SIZE);//go to next block head
+	}
+
+	//set the footer that seperates the heads to allocated
+	blockFtr *ftr = (blockFtr *)((char *)LAST_LIST + BLK_HDR_SIZE);
+	ftr -> size = 1;
+
+	//the epilogue is use to mark the end of the allocated blocks
+	blockHdr *epilogue = mem_sbrk(BLK_HDR_SIZE);
+	epilogue->size = BLK_HDR_SIZE | 1;
+   return 0;
 }
+
 
 /* 
  * mm_malloc - Allocate a block by incrementing the brk pointer.
