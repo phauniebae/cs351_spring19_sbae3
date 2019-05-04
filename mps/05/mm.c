@@ -192,6 +192,48 @@ void mm_free(void *ptr)
  */
 void *mm_realloc(void *ptr, size_t size)
 {
+	if (size == 0) {
+		//if newsize is 0, call mm_free(ptr) and return NULL
+		mm_free(ptr);
+		return NULL;
+	}else if (ptr == NULL){
+		//if ptr is NULL, call and return mm_malloc(ptr)
+		return mm_malloc(size);
+	}else if(size > 0){
+		//Otherwise: Return a block of size >= newsize that preserves 
+		//all the data from the payload of the block ptr
+		
+		//this is the pointer to the head of the block to be realloced
+		blockHdr *bp = (blockHdr *)((char *)ptr - BLK_HDR_SIZE);
+		
+		//the alligned size (actual size to check for)
+		size_t new_size = ALIGN(size + BLK_HDR_FTR_SIZE);
+	
+		//get next block after bp
+		blockHdr *next_block = (blockHdr *)((char *)bp + ((bp ->size) & ~1));
+		size_t next_block_size = ((next_block ->size) & ~1);
+		int next_block_size = ((next_block 0>size) & ~1);
+		size_t curr_block_size = ((bp ->size) & ~1);
+
+		if(new_size <= curr_block_size){
+			//case 1 - if newsize <= current size of ptr, just return ptr
+			//if the new size is much smaller than the current size, then may have to split it
+			return ptr;
+		}else if(next_block_free && ((next_block_size + curr_block_size) >= new_size)){
+			//case 2- If the next block after ptf is free and its size 
+			//plus the size of ptr is >= the requested newsize, remove the free
+			//the size of ptr and return ptr
+			
+			//remove the next block from the free list
+			remove_from_free_lists(next_block);
+
+			//now change the sizes of the current block header and footer
+			bp ->size &= ~1;
+			bp ->size += next_block_size;
+			blockFtr *foot = (blockFtr *)((char *)bp + ((bp->size) & (~1)) - BLK_FTR_SIZE);
+			bp ->size |= 1;
+			foot ->size = bp->size;
+
   void *oldptr = ptr;
   void *newptr;
   size_t copySize;
