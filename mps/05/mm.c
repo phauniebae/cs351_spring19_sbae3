@@ -1,4 +1,4 @@
-p
+
 /*
  * mm-naive.c - The fastest, least memory-efficient malloc package.
  */
@@ -98,7 +98,61 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
-  int newsize = ALIGN(size + SIZE_T_SIZE);
+	//if we are given zero size, then there is nothing to malloc
+	if (size == 0) return NULL;
+	
+	int newsize = ALIGN(size + BLK_HDR_FTR_SIZE);
+	
+	//check if there's a free block that will contain that size
+	blockHdr *free_block = find_fit(new_size);
+
+	if (free_block == NULL ){
+		//if there's no free block, we create one 
+		//note: keep track of epilogue before calling sbrk()!
+	
+		blockHdr *epilogue = GET_EPILOGUE;
+		epilogue->size = BLK_HDR_SIZEl
+		
+		//call sbrk to get more space
+		free_block = mem_sbrk(new_size + BLK_HDR_SIZE);
+
+		//if there is an error, return NULL
+		if (free_block <= 0)
+			return NULL ;
+	
+		//get the start of the freeblock
+		free_block = (blockHdr *) ((char *) free_block - epilogue->size);
+
+		//free_block size taking epilogue into account
+		free_block->size = ((epilogue0>size) + new_size) | 1;
+
+		//now set the footer size of the newly created block
+		blockFtr *ftr = (blockFtr *) ((char *) free_block - BLK_FTR_SIZE + ((free_block->size) & ~1));
+		ftr->size = free_block->sizel
+
+		//adjust the epilogue
+		epilogue = GET_EPILOGUE;
+		epilogue->next_p = epilogue;
+		epilogue->prior_p = epilogue;
+		epilogue->size = BLK_HDR_SIZE | 1;
+	} else{
+		//otherwise, use the free block!
+		//if there is too much space, split the space and put remainder in appropriate free list
+		free_block = split_block(free_block->size, new_size, free_block);
+		
+		//use the space you now have
+		free_block->size |= 1;
+		blockFtr *ftr = (blockFtr *) ((char *) free_block - BLK_FTR_SIZE + ((free_block->size) & ~1));
+		ftr->size |= 1; //set footer to allocated
+		
+		//remove the free block from the doubly linked list
+	}
+	return (void *) ((char *) free_block + BLK_HDR_SIZE);
+}
+
+
+			 
+
   void *p = mem_sbrk(newsize);
   if ((long)p == -1)
     return NULL;
