@@ -152,7 +152,7 @@ void *mm_malloc(size_t size)
 
 
 			 
-
+/*
   void *p = mem_sbrk(newsize);
   if ((long)p == -1)
     return NULL;
@@ -161,12 +161,30 @@ void *mm_malloc(size_t size)
     return (void *)((char *)p + SIZE_T_SIZE);
   }
 }
+*/
 
 /*
  * mm_free - Freeing a block does nothing.
  */
 void mm_free(void *ptr)
 {
+	//frees a block
+	//in order to free a block, simply set it's size to not allocated and place it in a free list
+	if(ptr == NULL) return;
+
+	blockHdr *head = (blockHdr *)((char *)ptr - BLK_HDR_SIZE);
+	blockFtr *foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head -> size) & ~1));
+	
+	//now set it to not allocated
+	//free the block
+	(head ->size) &= ~1;
+	(foot ->size) &= ~1;
+	
+	//coalease and add to free list
+	head = coalease(head);
+
+	//add to appropriate free list
+	add_to_free_lists(head);
 }
 
 /*
