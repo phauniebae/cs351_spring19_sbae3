@@ -16,8 +16,46 @@
 /* rounds up to the nearest multiple of ALIGNMENT */
 #define ALIGN(size) (((size) + (ALIGNMENT-1)) & ~0x7)
 
-
 #define SIZE_T_SIZE (ALIGN(sizeof(size_t)))
+#define BLK_HDR_SIZE ALIGN(sizeof(blockHdr))
+#define BLK_FTR_SIZE ALIGN(sizeof(blockFtr))
+#define BLK_HDR_FTR_SIZE ALIGN(sizeof(blockHdr)) + ALIGN(sizeof(blockFtr)) 
+#define GET_EPILOGUE (blockHdr *)(mem_heap_hi() - BLK_HDR_SIZE + 1)
+
+
+typedef struct header blockHdr;
+typedef struct footer blockFtr;
+
+
+struct header {
+	size_t size;
+	blockHdr *next_p;
+	blockHdr *prior_p;
+};
+
+
+struct footer {
+	size_t size;
+};
+
+
+//define methods in the program
+void *find_fit(size_t size);
+void *map_to_list(int size);
+void add_to_free_lists(blockHdr *head);
+blockHdr *coalease(blockHdr *head);
+blockHdr *split_block(int old_size, int new_size, blockHdr *head);
+void remove_from_free_lists(blockHdr *head);
+int mm_check();
+int is_last_block(blockHdr *head);
+
+
+//other constants and variables
+static int NUM_OF_FREE_LISTS = 4;
+blockHdr *LAST_LIST = NULL; //keep track of the very last list 
+
+
+
 
 /* 
  * mm_init - initialize the malloc package.
