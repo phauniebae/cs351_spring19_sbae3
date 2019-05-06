@@ -175,14 +175,14 @@ void eval(char *cmdline)
 {
   /* the following code demonstrates how to use parseline --- you'll 
    * want to replace most of it (at least the print statements). */
+  char *argv[MAXARGS};
+  char buf[MAXLINE];
   int i,
   int bg;
-  char *argv[MAXARGS];
-  char buf[MAXLINE];
   pid_t pid;			//process ID
   sigset_t mask;		//Signal set to block certain signals
  
-  strcpy(buf,cmdline);
+  strcpy(buf, cmdline);
   bg = parseline(buf, argv);
   if (argv[0] == NULL) {
 	return;
@@ -191,7 +191,7 @@ void eval(char *cmdline)
   if(!builtin_cmd(argv)){
 	// Blocking SIGCHILD
 	safe_sigemptyset(&mask);				//initialize signal set 
-	safe_sigaddset(&mask, SIGCHILD);		//adds SIGCHLD to the set
+	safe_sigaddset(&mask, SIGCHLD);		//adds SIGCHLD to the set
 	safe_sigprocmask(SIG_BLOCK, &mask, NULL);	//adds signal in set to blocked		
 
 	//CHILD
@@ -299,7 +299,7 @@ int builtin_cmd(char **argv)
 		return 1;
 	}
 	
-	 return 0;     /* not a builtin command */
+	return 0;     /* not a builtin command */
 }
 
 /* 
@@ -391,32 +391,32 @@ void sigchld_handler(int sig)
 	//function info: waitpid(pid_t pid, int *status, int options)
 	//if pid > 0: then the wait set is singleton child process whose process ID is = given PID 
 	//if pid = -1: then the wait set consists of all of the parent's child process 
-	//NOHANG | UNTRACED: 
+	//WNOHANG | WUNTRACED: 
 	//Return immediately with a return value of 0, if none of the children in wait set stopped or terminated
 	//or with a return value euqal to PID of the stopped or terminated children 
 	
-	while((pid = waitpid(-1, &status NOHANG | UNTRACED)) > 0) {	//reap a zombie child
+	while((pid = waitpid(-1, &status WNOHANG | WUNTRACED)) > 0) {	//reap a zombie child
 	       jobid = pid2jid(pid);
        	//check the exit status of the reaped child
 	
-	//IFEXITED returns true if child terminated normally	
-	if(IFEXITED(status)){
+	//WIFEXITED returns true if child terminated normally	
+	if(WIFEXITED(status)){
 		deletejob(jobs,pid);	//delete the child from job list
 		if(verbose) printf("sigchld_handler: Job [%d] (%d) deleted\n", jobid, (int)pid);
-		if(verbose) printf("sigchld_handler: Job [%d] (%d) terminates OK (status %d)\n", jobid, (int)pid, EXITSTATUS(status)); 
+		if(verbose) printf("sigchld_handler: Job [%d] (%d) terminates OK (status %d)\n", jobid, (int)pid, WEXITSTATUS(status)); 
 	}
 
-	//IFSIGNALED returns trus if the child process terminated because of a signal that was not caught
-	else if(IFSIGNALED(status)){
+	//WIFSIGNALED returns true if the child process terminated because of a signal that was not caught
+	else if(WIFSIGNALED(status)){
 		deletejob(jobs,pid);
-		if(verbose) printf("sigchld_handler: Job [%d] (%d) deleted\n", jobid, (int)pid);
-		printf("Job [%d](%d) terminated by signal %d\n", jobid, (int) pid, TERMSIG(status));
+		if(verbose) printf("sigchld_handler: Job [%d] (%d) deleted\n", jobid, (int) pid);
+		printf("Job [%d](%d) terminated by signal %d\n", jobid, (int) pid, WTERMSIG(status));
 	}
 	
-	//IFSTOPPED returns true if the child that cause the return is currently stopped 
-	else if(IFSTOPPED(status)){		//checks if child process that caused return is currently stopped
+	//WIFSTOPPED returns true if the child that cause the return is currently stopped 
+	else if(WIFSTOPPED(status)){		//checks if child process that caused return is currently stopped
 		getjobpid(jobs, pid)->state = ST; //Change job status to stop 	
-		printf("Job [%d] (%d) stopped by signal %d\n", jobid, (int) pid, STOPSIG(status));
+		printf("Job [%d] (%d) stopped by signal %d\n", jobid, (int) pid, WSTOPSIG(status));
 	}
 }
 	
@@ -464,9 +464,9 @@ void sigtstp_handler(int sig)
 	pid_t pid = fgpid(jobs);
 
 	if(pid != 0){
-	// Sends SIGTSTP to every process in the same process group with pid 
-	safe_kill(-pid, sig); //signals to the entire foreground process group 
-	if (verbose) printf("sigtstp_handler: Job [%d] and its entire foreground jobs with the same process group are killed\n", (int)pid);
+		// Sends SIGTSTP to every process in the same process group with pid 
+		safe_kill(-pid, sig); //signals to the entire foreground process group 
+		if (verbose) printf("sigtstp_handler: Job [%d] and its entire foreground jobs with the same process group are killed\n", (int)pid);
 	}
 	
 	return;
@@ -691,7 +691,9 @@ void sigquit_handler(int sig)
   exit(1);
 }
 
-//Adding some system call error handling functions: 
+
+
+//***Adding some system call error handling functions:***//
 pid_t safe_fork(void){
 	pid_t pid;
 	if((pid = fork()) < 0){
