@@ -191,13 +191,13 @@ void eval(char *cmdline)
 		//check if command is there
 		if(execvp(argv[0], argv) < 0){
 			printf("%s: Command not found\n", argv[0]);
-			exit(0);
+			exit(1);
 		}
 	}
 
 	//PARENT
 	else {
-		if(!big){	//foreground
+		if(!bg){	//foreground
 			addjob(jobs, pid, FG, cmdline);			//Add process to job list
 		}
 		else {
@@ -291,7 +291,7 @@ int builtin_cmd(char **argv)
 		listjobs(jobs);
 		return 1;
 	}
-	else if (!strcmp("bg", argv[0]) \\ !(strcmp("fg", argv[0]))) {
+	else if (!strcmp("bg", argv[0]) || !(strcmp("fg", argv[0]))) {
 		//call bgfg
 		do_bgfg(argv);
 		return 1;
@@ -313,7 +313,7 @@ void do_bgfg(char **argv)
 
 	//if id does not exist
 	if(tmp == NULL) {
-		printf("%s command requires PID of %%jobid argument\n", argv[0]);
+		printf("%s command requires PID or %%jobid argument\n", argv[0]);
 		return;
 	}
 
@@ -339,7 +339,7 @@ void do_bgfg(char **argv)
 		job = getjobpid(jobs, pid);
 		if(job == NULL){
 			printf("(%d): No such process\n", pid);
-			rturn;
+			return;
 		}
 	}
 	else {
@@ -398,7 +398,7 @@ void sigchld_handler(int sig)
 	int status;
 	pid_t pid;
 	
-	while((pid = waitpid(fgpid(jobs), &statu,s WNOHANG|WUNTRACED)) > 0) {	//reap a zombie child
+	while((pid = waitpid(fgpid(jobs), &status, WNOHANG|WUNTRACED)) > 0) {	//reap a zombie child
 	       if (WIFSTOPPED(status)){
 			//change state if stopped
 			getjobpid(jobs, pid)->state = ST;
@@ -445,7 +445,6 @@ void sigtstp_handler(int sig)
 	pid_t pid = fgpid(jobs);
 	//check for valid pid
 	if(pid != 0){
-		// Sends SIGTSTP to every process in the same process group with pid 
 		kill(-pid, sig); //signals to the entire foreground process group 
 	}
 	return;
