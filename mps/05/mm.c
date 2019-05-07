@@ -531,7 +531,7 @@ void mm_free(void *ptr){
 	//now set it to not allocated
 	//free the block
 	(head ->size) &= ~1;
-	(food ->size) &= ~1;
+	(foot ->size) &= ~1;
 
 	 //coalease and add to free list
 	 head = coalease(head);
