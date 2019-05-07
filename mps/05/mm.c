@@ -352,10 +352,6 @@ blockHdr *coalease(blockHdr *head){
 
 
 
-
-
-
-
 /*
  * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
  */
@@ -503,7 +499,51 @@ int is_last_block(blockHdr *head){
 }
 
 
-  void *oldptr = ptr;
+
+int mm_check()
+	//heap consistency checker. Just two cases are checked
+	//others are fairly straightfoward
+	
+	//check if all free blocks are actuallu free
+	int k = NUM_OF_FREE_LISTS-1;
+	blockHdr *list_start = (blockHdr *)mem_heap_lo();
+	LAST_LIST = list_start + k;
+
+	if error_f = 0;
+	//check all the free blocks until you get to the start again
+	
+	for(;(list_start<=LAST_LIST)&& !error_f;list_start = list_start +1){
+		blockHdr *curr_b = list_start->next_p;
+		for(;(curr_b != list_start)&&!error_f;curr_b = curr_b ->next_p){
+			if((curr_b->size &1)&&(curr_b != list_start)){
+				//flag an error
+				printf("A FREE BLOCK WAS NOT FREE. CHECK : % %p", curr_b);
+				error_f = 1;
+				break;
+			}
+		}
+	}
+
+	
+	if(error_f >0) return error_f; //return a flag for error
+
+	//check whether handlers and footers actually have the same size
+	
+	blockHdr *alloc_start = (blockHdr *)((char *)LAST_LIST + BLK_HDR_FTR_SIZE);
+
+	//check all blocks except the last one
+		for(;(alloc_start <= (blockHdr *)mem_heap_hi());alloc_start = (blockHdr *)((char *)alloc_start + (alloc_start ->size))){
+			blockFtr *blk_e = (blockFtr *)((char *)alloc_start + (alloc_start ->size) - BLK_FTR_SIZE);
+			if((alloc_start ->size) != (blk_e ->size)){
+				printf("HEADER AND FOOTER DO NOT HAVE THE SAME SIZE. CHECK : %p",alloc_start);
+				break;
+			}
+		}
+	return 0;
+}
+
+
+/*  void *oldptr = ptr;
   void *newptr;
   size_t copySize;
     
@@ -516,4 +556,4 @@ int is_last_block(blockHdr *head){
   memcpy(newptr, oldptr, copySize);
   mm_free(oldptr);
   return newptr;
-}
+}*/
