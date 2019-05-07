@@ -368,15 +368,17 @@ void do_bgfg(char **argv)
 void waitfg(pid_t pid)
 {
 	//In waitfg, use a busy loop around the sleep function
-	while(1){
-	       if(pid != fgpid(jobs)){
-	       		if(verbose) printf("waitfg: Process (%d) no longer the fg process\n", (int) pid);
-	 		break;
-		} else{
-	 		sleep(1);
+	struct job_t* job;
+	job = getjobpid(jobs,pid);
+	//check if pid is valid
+	if(pid == 0){
+		return;
+	}
+	if(job != NULL){
+		//sleep
+		while(pid==fgpid(jobs)){
 		}
 	}
-
 	return;
 }
 
