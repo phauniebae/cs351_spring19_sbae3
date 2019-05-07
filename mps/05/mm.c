@@ -432,7 +432,14 @@ void *mm_realloc(void *ptr, size_t size)
 	return NULL;
 }
 
-
+int is_last_block(blockHdr *head){
+	//this method returns 1 if the current block is the last block just before the epilogue
+	//otherwise, return 0
+	
+	blockHdr *epilogue = GET_EPILOGUE;
+	if((blockHdr *)((char *)head + ((head ->size) & (~1)))>= epilogue) return 1;
+	return 0;
+}
 
 
   void *oldptr = ptr;
