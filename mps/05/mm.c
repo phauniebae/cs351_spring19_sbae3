@@ -211,6 +211,53 @@ blockHdr *split_block(int old_size, int new_size, blockHdr *head) {
 }
 
 
+void *map_to_list(int size){
+
+	//given a certain size, this function returns a pointer to it's corresponding free list
+	
+	blockHdr *list = (blockHdr *) mem_heap_lo();
+	if(size < 290){
+		return list;
+	}else if (size < 540){
+		return list + 2;
+	}else{
+		return list + 3;
+	}
+}
+
+
+void *find_fit(size_t size){
+	blockHdr *LAST_LIST = mem_heap_lo() + (NUM_OF_FREE_LISTS-1)*BLK_HDR_SIZE;
+	//finds a free block within the set of free lists that matches the given size
+	blockHdr* list = map_to_lists(size);
+
+	//now check all lists from that list to the last list
+	//in order to find a suitable free block
+	
+	for(; list <= LAST_LIST; list = (blockHdr *)((char *)list + BLK_HDR_SIZE)){
+		//for a given list, look to find if a free block greater than (or equal) the size seeking is there 
+		blockHdr* curr_block = list ->next_p;
+		for(;(curr_block != list_); (curr_block = curr_block->next_p)){
+			if((((curr_block ->size)) && !((curr_block ->size) & 1)){
+				//if the size is larger than (or equal to) what we are looking for and it's free 
+				//then found a free space
+				return (void *)curr_block;
+			}
+			
+		}
+	}
+	return NULL; //no free block find
+}
+
+
+
+/*void add_to_free_lists(blockHdr *head){
+	//adds a block to the free list
+	//check for boundary conditions
+	if(head == NULL) return;
+
+	//get list which the head belongs to
+	blockHdr *free_list = map_*/
 
 
 /*
