@@ -393,7 +393,7 @@ void *mm_realloc(void *ptr, size_t size){
 		//get next block after bp
 		blockHdr *next_block = (blockHdr *)((char *)bp + ((bp ->size) & ~1));
 		size_t next_block_size = ((next_block ->size) & ~1);
-		int next_block_free = !((next_block ->size) & &1);
+		int next_block_free = !((next_block ->size) & ~1);
 		size_t curr_block_size = ((bp ->size) & ~1);
 
 		if(new_size <= curr_block_size){
