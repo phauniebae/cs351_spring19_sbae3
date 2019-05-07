@@ -293,6 +293,8 @@ void mm_free(void *ptr)
 	add_to_free_lists(head);
 }
 
+
+
 /*
  * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
  */
@@ -325,8 +327,9 @@ void *mm_realloc(void *ptr, size_t size)
 			//case 1 - if newsize <= current size of ptr, just return ptr
 			//if the new size is much smaller than the current size, then may have to split it
 			return ptr;
+		
 		}else if(next_block_free && ((next_block_size + curr_block_size) >= new_size)){
-			//case 2- If the next block after ptf is free and its size 
+			//case 2 - If the next block after ptf is free and its size 
 			//plus the size of ptr is >= the requested newsize, remove the free
 			//the size of ptr and return ptr
 			
@@ -339,6 +342,98 @@ void *mm_realloc(void *ptr, size_t size)
 			blockFtr *foot = (blockFtr *)((char *)bp + ((bp->size) & (~1)) - BLK_FTR_SIZE);
 			bp ->size |= 1;
 			foot ->size = bp->size;
+
+			//now return the resized block
+			return (void *)((char *)bp + BLK_HDR_SIZE);
+		}else if(next_block_free && is_last_block(next_block) ){
+			//case 3 - If the next block after bp is free, but its size plus the
+			//size of ptf is NOT >= the requested newsize, BUT this nexr
+			//block is the 'last' block (before the epilogue), call
+			//sbrk() to get additional size and rewrite the header and 
+			//then the footer of bp to change the size of bp. return ptr. 
+
+		       	//remove the next block from the free list
+			remove_from_free_lists(next_block);
+
+			//get additional size that should be allocated
+			int add_size = new_size - (new_block_size + curr_block_size);
+			
+			//get current epilogue 
+			blockHdr *epilogue = GET_EPILOGUE;
+			epilogue -> size = BLK_HDR_SIZE;
+
+			//now allocated this size by using sbrk
+			blockHdr *free_block = mem_sbrk(add_size);
+			
+			//if there's an error during allocation return NULL
+			if (free_block <= 0) return NULL ;
+
+			//then set the header and footer sizes to reflect this change
+			bp ->size = new_size|1;
+			blockFtr *foor = (blockFtr *)((char *)bp + ((bp ->size) & (~1)) - BLK_FTR_SIZE);
+			foot ->size = bp ->size;
+			
+			//adjust the epilogue
+			epilogue = GET_EPILOGUE;
+			epilogue->next_p = epilogue;
+			epilogue->prior_p = epilogue;
+			epilogue->size = BLK_HDR_SIZE | 1;
+
+			//return newly extended block (actually payload)
+			reutn (void *)((char *)bp + BLK_HDR_SIZE);
+		}else if(is_last_block(bp)){
+			//case 4 - if bp is the 'last' block (before the epilogue), call
+			//sbrk to get additional size and rewrite the header and 
+			//then the footer of bp to change the size of bp. return bp. 
+
+			//get additional size that should be allocated
+			int add_size = new_size - (curr_block_size);
+			
+			//get current epilogue
+			blockHdr *epilogue = GET_EPILOGUE;
+			epilogue->size = BLK_HDR_SIZE;
+			
+			//now allocated this size by using sbrk 
+			blockHdr *free_block = mem_sbrk(add_size);
+			
+			//if there's an error during allocation return NULL
+			if (free_block <= 0) return NULL;
+
+			//then set the header and footer sizes to reflect this change
+			bp ->size = new_size|1;
+			blockFtr *foot = (blockFtr *)((char *)bp + ((bp ->size) & (~1)) - BLK_FTR_SIZE);
+			foot ->size = bp ->size;
+			
+			//adjust the epilogue
+			epilogue = GET_EPILOGUE;
+			epilogue->next_p = epilogue;
+			epilogue->prior_p = epilogue;
+			epilogue->size = NLK_HDR_SIZE | 1;
+
+			//return newly extended block (actually payload)
+			return (void *)((char *)bp + BLK_HDR_SIZE);
+
+		}else{
+			//use malloc to get more space and copy the payload over to this space 
+			
+			//malloc with the new size
+			void *new_blk = mm_malloc(size);
+
+			//copoy payload
+			memcpy(new_blk,ptr,curr_block_size);
+			
+			//free previous block (ptr)
+			mm_free(ptr);
+
+			//return newly malloced block
+			return new_blk;
+		}
+	}
+	return NULL;
+}
+
+
+
 
   void *oldptr = ptr;
   void *newptr;
