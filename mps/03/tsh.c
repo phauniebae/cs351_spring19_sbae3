@@ -425,17 +425,12 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
-	if(verbose) printf("sigint_handler: entering\n");
-
 	pid_t pid = fgpid(jobs);
-
+	
+	//check for valid pid
 	if(pid != 0){
-		//This wil send SIGINT to every process in the same process group with pid
-		safe_kill(-pid, sig); //signals to the entire foreground process group
-		if(verbose) printf("sigint_handler: JOB [%d] and its entire foreground job with the same process group are killed\n", (int)pid);
+		kill(-pid, sig); //signals to the entire foreground process group
 	}
-
-	if (verbose) printf("sigint_handler: exiting\n");
 	return;
 
  }
@@ -448,13 +443,11 @@ void sigint_handler(int sig)
 void sigtstp_handler(int sig) 
 {
 	pid_t pid = fgpid(jobs);
-
+	//check for valid pid
 	if(pid != 0){
 		// Sends SIGTSTP to every process in the same process group with pid 
-		safe_kill(-pid, sig); //signals to the entire foreground process group 
-		if (verbose) printf("sigtstp_handler: Job [%d] and its entire foreground jobs with the same process group are killed\n", (int)pid);
+		kill(-pid, sig); //signals to the entire foreground process group 
 	}
-	
 	return;
 }
 
@@ -663,7 +656,7 @@ handler_t *Signal(int signum, handler_t *handler)
   action.sa_flags = SA_RESTART; /* restart syscalls if possible */
 
   if (sigaction(signum, &action, &old_action) < 0)
-    unix_error("Signal error");
+  unix_error("Signal error");
   return (old_action.sa_handler);
 }
 
@@ -675,46 +668,5 @@ void sigquit_handler(int sig)
 {
   printf("Terminating after receipt of SIGQUIT signal\n");
   exit(1);
-}
-
-
-
-//***Adding some system call error handling functions:***//
-pid_t safe_fork(void){
-	pid_t pid;
-	if((pid = fork()) < 0){
-		unix_error("fork error");
-	}
-	return pid;
-}
-
-void safe_setpgid(pid_t pid, pid_t pgid){
-	if (setpgid(pid, pgid) < 0){
-		unix_error("setpgid error");
-	}
-}
-
-void safe_kill(pid_t pid, int sig){
-	if(kill(pid, sig) < 0){
-		unix_error("kill error");
-	}
-}
-
-void safe_sigemptyset(sigset_t *set){
-	if(sigemptyset(set) < 0){
-		app_error("sigemptyset error");
-	}
-}
-
-void safe_sigaddset(sigset_t *set, int signum){
-	if(sigaddset(set, signum) < 0){
-		app_error("sigaddset error");
-	}
-}
-
-void safe_sigprocmask(int how, const sigset_t *set, sigset_t *oldset){
-	if(sigprocmask(how, set, oldset) < 0) {
-		app_error("sigprocmask error");
-	}
 }
 
