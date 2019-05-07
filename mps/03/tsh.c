@@ -167,7 +167,7 @@ void eval(char *cmdline)
 {
   /* the following code demonstrates how to use parseline --- you'll 
    * want to replace most of it (at least the print statements). */
-  char *argv[MAXARGS};
+  char *argv[MAXARGS];
   int bg;
   pid_t pid;			//process ID
   sigset_t mask;		//Signal set to block certain signals
