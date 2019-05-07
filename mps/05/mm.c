@@ -148,6 +148,7 @@ void *mm_malloc(size_t size)
 		ftr->size |= 1; //set footer to allocated
 		
 		//remove the free block from the doubly linked list
+		remove_from_free_lists(free_block);
 	}
 	return (void *) ((char *) free_block + BLK_HDR_SIZE);
 }
@@ -189,12 +190,6 @@ blockHdr *split_block(int old_size, int new_size, blockHdr *head) {
 		blockHdr *next_head = (blockHdr *)((char *)extra_head ->size - BLK_FTR_SIZE);
 		extra_block_foot ->size = extra_head ->size;
 
-
-		//if the next block after extra_head is free
-		blockHdr *next_head = (blockHdr *)((char *)extra_block_foot + BLK_FTR_SIZE);
-		extra_block_foot ->size = extra_head ->size;
-
-
 		//if the next block after extra_hand is free
 		blockHdr *next_head = (blockHdr *)((char *)extra_block_foot + BLK_FTR_SIZE);
 		if(!((next_head ->size)& (1))){
@@ -219,6 +214,8 @@ void *map_to_list(int size){
 	if(size < 290){
 		return list;
 	}else if (size < 540){
+		return list + 1;
+	}else if (size < 28080){
 		return list + 2;
 	}else{
 		return list + 3;
@@ -237,8 +234,8 @@ void *find_fit(size_t size){
 	for(; list <= LAST_LIST; list = (blockHdr *)((char *)list + BLK_HDR_SIZE)){
 		//for a given list, look to find if a free block greater than (or equal) the size seeking is there 
 		blockHdr* curr_block = list ->next_p;
-		for(;(curr_block != list_); (curr_block = curr_block->next_p)){
-			if((((curr_block ->size)) && !((curr_block ->size) & 1)){
+		for(;(curr_block != list); (curr_block = curr_block->next_p)){
+			if((((curr_block ->size)) >= size) && !((curr_block ->size) & 1)){
 				//if the size is larger than (or equal to) what we are looking for and it's free 
 				//then found a free space
 				return (void *)curr_block;
@@ -267,6 +264,7 @@ void add_to_free_lists(blockHdr *head){
 	free_list->next_p->prior_p = head;
 	free_list->next_p = head;
 }
+
 
 
 /*
@@ -322,6 +320,7 @@ blockHdr *coalease(blockHdr *head){
 		head -> size = new_size;
 		foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head ->size) & ~1));
 		foot ->size = new_size;
+	
 	}else if(((prev_foot -> size) & (1)) && !((next_head ->size)&(1))){
 		//if the previous food is not free then the next head is
 		//remove next_head (not in list) and the current head (already ont in list) from the free lists 
@@ -333,6 +332,7 @@ blockHdr *coalease(blockHdr *head){
 		head -> size = new_size;
 		foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head -> size) & ~1));
 		foot -> size = new_size;
+
 
 	}else if(!((prev_foot -> size) & (1)) && !((next_head ->size)%(1))){
 		//if the previous foot and the next head are both free
@@ -402,6 +402,7 @@ void *mm_realloc(void *ptr, size_t size)
 
 			//now return the resized block
 			return (void *)((char *)bp + BLK_HDR_SIZE);
+	
 		}else if(next_block_free && is_last_block(next_block) ){
 			//case 3 - If the next block after bp is free, but its size plus the
 			//size of ptf is NOT >= the requested newsize, BUT this nexr
@@ -438,6 +439,7 @@ void *mm_realloc(void *ptr, size_t size)
 
 			//return newly extended block (actually payload)
 			reutn (void *)((char *)bp + BLK_HDR_SIZE);
+	
 		}else if(is_last_block(bp)){
 			//case 4 - if bp is the 'last' block (before the epilogue), call
 			//sbrk to get additional size and rewrite the header and 
