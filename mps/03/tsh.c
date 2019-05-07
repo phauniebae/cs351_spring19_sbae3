@@ -84,14 +84,6 @@ void app_error(char *msg);
 typedef void handler_t(int);
 handler_t *Signal(int signum, handler_t *handler);
 
-//Additional functions to check return value of every system call 
-pid_t safe_fork(void);
-void safe_setpgid(pid_t pid, pid_t, pgid);
-void safe_kill(pid_t pid, int sig);
-
-void safe_sigempty(sigset_t *set);
-void safe_sigaddset(sigset_t *set, int signum);
-void safe_sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
 
 /*
  * main - The shell's main routine 
@@ -111,13 +103,13 @@ int main(int argc, char **argv)
     switch (c) {
     case 'h':             /* print help message */
       usage();
-      break;
+    break;
     case 'v':             /* emit additional diagnostic info */
       verbose = 1;
-      break;
+    break;
     case 'p':             /* don't print a prompt */
       emit_prompt = 0;  /* handy for automatic testing */
-      break;
+    break;
     default:
       usage();
     }
@@ -176,47 +168,53 @@ void eval(char *cmdline)
   /* the following code demonstrates how to use parseline --- you'll 
    * want to replace most of it (at least the print statements). */
   char *argv[MAXARGS};
-  char buf[MAXLINE];
-  int i,
   int bg;
   pid_t pid;			//process ID
   sigset_t mask;		//Signal set to block certain signals
  
-  strcpy(buf, cmdline);
-  bg = parseline(buf, argv);
-  if (argv[0] == NULL) {
-	return;
-  }
-  
+  bg = parseline(cmdline, argv);
+  //check if valid builtin_cmd  
   if(!builtin_cmd(argv)){
+	
 	// Blocking SIGCHILD
-	safe_sigemptyset(&mask);				//initialize signal set 
-	safe_sigaddset(&mask, SIGCHLD);		//adds SIGCHLD to the set
-	safe_sigprocmask(SIG_BLOCK, &mask, NULL);	//adds signal in set to blocked		
-
-	//CHILD
-	if((pid = safe_fork()) == 0){
-		safe_setpgid(0,0);		//set child's group to new process group
-		safe_sigprocmask(SIG_UNBLOCK, &mask, NULL);	//unblocks SIGCHLD signal
-
-		if(execve(argv[0], argv, environ) < 0){
+	sigemptyset(&mask);				//initialize signal set 
+	sigaddset(&mask, SIGCHLD);		//adds SIGCHLD to the set
+	sigprocmask(SIG_BLOCK, &mask, NULL);	//adds signal in set to blocked		
+	//forking
+	if((pid = fork()) < 0){
+		unix_error("forking error");
+	}
+	//child
+	else if(pid == 0){
+		sigprocmask(SIG_UNBLOCK, &mask, NULL);	//unblocks SIGCHLD signal
+		setpgid(0, 0);
+		//check if command is there
+		if(execvp(argv[0], argv) < 0){
 			printf("%s: Command not found\n", argv[0]);
 			exit(0);
 		}
 	}
 
 	//PARENT
-	if(!big){	//foreground
-		addjob(jobs, pid, FG, cmdline);			//Add process to job list
-		safe_sigprocmask(SIG_UNBLOCK, &mask, NULL);	//Unblocks SIGCHLD signal
-		waitfg(pid);					//Parent waits for foreground to terminate
-	} else{		//background 
-		addjob(jobs, pid, BG, cmdline);
-		safe_sigprocmask(SIG_UNBLOCK, &mask, NULL);
-		printf("[%d] (%d) %s", pid2jid(pid), (int)pid, cmdline);
-	}
-   }
-   return;
+	else {
+		if(!big){	//foreground
+			addjob(jobs, pid, FG, cmdline);			//Add process to job list
+		}
+		else {
+			addjob(jobs, pid, BG, cmdline);
+		}
+		sigprocmask(SIG_UNBLOCK, &mask, NULL);	//Unblocks SIGCHLD signal
+		
+		//if bg/fg
+		if (!bg){
+			waitfg(pid);					//Parent waits for foreground to terminate
+		} 
+		else {		//background 
+			//print for bg
+			printf("[%d] (%d) %s", pid2jid(pid), pid, cmdline);
+		}
+   	}
+  }
 }
 
 
@@ -266,9 +264,9 @@ int parseline(const char *cmdline, char **argv)
     }
   }
   argv[argc] = NULL;
-    
-  if (argc == 0)  /* ignore blank line */
-    return 1;
+
+  if (argc == 0)
+  return 1;
 
   /* should the job run in the background? */
   if ((bg = (*argv[argc-1] == '&')) != 0) {
@@ -286,19 +284,18 @@ int builtin_cmd(char **argv)
 	if (!strcmp(argv[0], "quit")){
 		exit(0);
 	}
-	else if (!strcmp(argv[0], "jobs")){
- 		listjobs(jobs);
+	else if (!strcmp("&", argv[0])){
+ 		return 1;
+	}
+	else if (!strcmp("jobs", argv[0])){
+		listjobs(jobs);
 		return 1;
 	}
-	else if (!strcmp(argv[0], "bg")){
+	else if (!strcmp("bg", argv[0]) \\ !(strcmp("fg", argv[0]))) {
+		//call bgfg
 		do_bgfg(argv);
 		return 1;
 	}
-	else if (!strcmp(argv[0], "fg")){
-		do_bgfg(argv);
-		return 1;
-	}
-	
 	return 0;     /* not a builtin command */
 }
 
@@ -307,47 +304,63 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
+	struct job_t *job;
+	char *tmp;
+	int jid;
+	pid_t pid;
 
- 	if(argv[1] == NULL){			//check to see if second argument exists
-	  printf("%s command requires PID or %%jobid argument\n", argv[0]);
-	  return;
-	}
+	tmp = argv[1];
 
-	if(!isdigit(argv[1][0]) && argv[1][0] != '%'){	//Checks if second argument is valid
-		printf("%s: argument must be a PID or %%jobid\n", argv[0]);
+	//if id does not exist
+	if(tmp == NULL) {
+		printf("%s command requires PID of %%jobid argument\n", argv[0]);
 		return;
 	}
 
-	int is_job_id = (argv[1][0] == '%' ? 1 : 0);	//PID or JID?
-	struct job_t *givenjob;
-
-	if (is_job_id){
-		givenjob = getjobjid(jobs, atoi(&argv[1][1]));	//Get JID. pointer starts at second character
-		if (givenjob == NULL){	//check if JID alive
-			printf("%s: No such job\n" argv[1]);
+	//if it is a jid
+	if(tmp[0] == '%') {
+		jid = atoi(&tmp[1]);
+		//get job
+		job = getjobjid(jobs, jid);
+		if(job == NULL){
+			printf("%s: No such job\n", tmp);
 			return;
-		}
-	} else{
-		givenjob = getjobpid(jobs, (pid_t) atoi(argv[1]));  //Get PID w second argument
-		if(givenjob == NULL){	//Check if given PID is there 
-			printf("(%d): No such process\n", atoi(argv[1]));
-			return;
+		}else{
+			//get the pid if a valid job for later to kill
+			pid = job->pid;
 		}
 	}
 
-	if(strcmp(argv[0], "bg") == 0){
-		givenjob->state = BG;			//Change (FG>BG) or (ST->BG)
-		printf("[%d] (%d) %s", givenjob->jid, givenjob->pid, givenjob->cmdline);
-		safe_kill(-givenjob->pid, SIGCONT);	//Send SIGCONT signal 
-	} else{
-		givenjob->state = FG;			//Change (BG ->FG) or (ST -> FG) 
-		safe_kill(-givenjob->pid, SIGCONT);	//Second SIGCONT signal 
-		waitfg(givenjob->pid);			// Wait for fgjob to finish
+	//if it is a pid
+	else if(isdigit(tmp[0])) {
+		//get pid
+		pid = atoi(tmp);
+		//get job
+		job = getjobpid(jobs, pid);
+		if(job == NULL){
+			printf("(%d): No such process\n", pid);
+			rturn;
+		}
 	}
-	
-	return;
+	else {
+		printf("%s: argument must be a PID or %%jobid\n", argv[0]);
+		return;
+	}
+	//kill for each time
+	kill(-pid, SIGCONT);
+
+	if(!strcmp("fg", argv[0])) {
+		//wait for fg
+		job->state = FG;
+		waitfg(job->pid);
+	}
+	else{
+		//print for bg
+		printf("[%d] (%d) %s", job->jid, job->pid, job->cmdline);
+		job->state = BG;
+	}
 }
-
+	
 
 /* 
  * waitfg - Block until process pid is no longer the foreground process
