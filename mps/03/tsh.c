@@ -395,55 +395,26 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
-	//sigchld_handlr = use only one call to wait pid
-	//must reap all available zombie children
-	if(verbose) printf("sigchld_handler: entering\n");
-
-	pid_t pid;
 	int status;
-	int jobid;
+	pid_t pid;
 	
-	//function info: waitpid(pid_t pid, int *status, int options)
-	//if pid > 0: then the wait set is singleton child process whose process ID is = given PID 
-	//if pid = -1: then the wait set consists of all of the parent's child process 
-	//WNOHANG | WUNTRACED: 
-	//Return immediately with a return value of 0, if none of the children in wait set stopped or terminated
-	//or with a return value euqal to PID of the stopped or terminated children 
-	
-	while((pid = waitpid(-1, &status WNOHANG | WUNTRACED)) > 0) {	//reap a zombie child
-	       jobid = pid2jid(pid);
-       	//check the exit status of the reaped child
-	
-	//WIFEXITED returns true if child terminated normally	
-	if(WIFEXITED(status)){
-		deletejob(jobs,pid);	//delete the child from job list
-		if(verbose) printf("sigchld_handler: Job [%d] (%d) deleted\n", jobid, (int)pid);
-		if(verbose) printf("sigchld_handler: Job [%d] (%d) terminates OK (status %d)\n", jobid, (int)pid, WEXITSTATUS(status)); 
+	while((pid = waitpid(fgpid(jobs), &statu,s WNOHANG|WUNTRACED)) > 0) {	//reap a zombie child
+	       if (WIFSTOPPED(status)){
+			//change state if stopped
+			getjobpid(jobs, pid)->state = ST;
+			int jid = pid2jid(pid);
+			printf("Job [%d] (%d) Stopped by signal %d\n", jid, pid, WSTOPSIG(status));
+		}
+		else if (WIFSIGNALED(status)){
+			//delete is signaled
+			int jid = pid2jid(pid);
+			printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(status));
+			deletejob(jobs, pid);
+		}
+		else if (WIFEXITED(status)){
+			deletejob(jobs, pid);
+		}
 	}
-
-	//WIFSIGNALED returns true if the child process terminated because of a signal that was not caught
-	else if(WIFSIGNALED(status)){
-		deletejob(jobs,pid);
-		if(verbose) printf("sigchld_handler: Job [%d] (%d) deleted\n", jobid, (int) pid);
-		printf("Job [%d](%d) terminated by signal %d\n", jobid, (int) pid, WTERMSIG(status));
-	}
-	
-	//WIFSTOPPED returns true if the child that cause the return is currently stopped 
-	else if(WIFSTOPPED(status)){		//checks if child process that caused return is currently stopped
-		getjobpid(jobs, pid)->state = ST; //Change job status to stop 	
-		printf("Job [%d] (%d) stopped by signal %d\n", jobid, (int) pid, WSTOPSIG(status));
-	}
-}
-	
-//If the calling process has no children, then waitpid returns -1 and sets "errno" to ECHILD.
-//If the "waitpd" function was interrupted by a signal, then it returns -1 and sets "errno" to EINTR
-/*
-if (errno != ECHILD){
-	unix_error("waitpid error");
-}
-*/
-
-	if(verbose) printf("sigchld_handler: exiting\n");
 	return;
 }
 
