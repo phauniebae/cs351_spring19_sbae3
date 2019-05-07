@@ -393,7 +393,7 @@ void *mm_realloc(void *ptr, size_t size){
 		//get next block after bp
 		blockHdr *next_block = (blockHdr *)((char *)bp + ((bp ->size) & ~1));
 		size_t next_block_size = ((next_block ->size) & ~1);
-		int next_block_free = !((next_block ->size) & ~1);
+		int next_block_free = !((next_block ->size) & &1);
 		size_t curr_block_size = ((bp ->size) & ~1);
 
 		if(new_size <= curr_block_size){
@@ -518,7 +518,7 @@ int is_last_block(blockHdr *head){
 
 
 
-void mm_free(void *ptf){
+void mm_free(void *ptr){
 
 	//frees a block
 	//in order to free a block, simply set it's size to not allocated and place it in a free list
@@ -531,7 +531,7 @@ void mm_free(void *ptf){
 	//now set it to not allocated
 	//free the block
 	(head ->size) &= ~1;
-	(food ->size_ &= ~1;
+	(food ->size) &= ~1;
 
 	 //coalease and add to free list
 	 head = coalease(head);
@@ -608,7 +608,7 @@ blockHdr *coalease(blockHdr *head){
 
 
 
-int mm_check()
+int mm_check(){
 	//heap consistency checker. Just two cases are checked
 	//others are fairly straightfoward
 	
@@ -625,7 +625,7 @@ int mm_check()
 		for(;(curr_b != list_start)&&!error_f;curr_b = curr_b ->next_p){
 			if((curr_b->size &1)&&(curr_b != list_start)){
 				//flag an error
-				printf("A FREE BLOCK WAS NOT FREE. CHECK : % %p", curr_b);
+				printf("A FREE BLOCK WAS NOT FREE. CHECK :  %p", curr_b);
 				error_f = 1;
 				break;
 			}
