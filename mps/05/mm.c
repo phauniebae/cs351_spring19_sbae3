@@ -251,13 +251,22 @@ void *find_fit(size_t size){
 
 
 
-/*void add_to_free_lists(blockHdr *head){
+void add_to_free_lists(blockHdr *head){
 	//adds a block to the free list
 	//check for boundary conditions
 	if(head == NULL) return;
 
 	//get list which the head belongs to
-	blockHdr *free_list = map_*/
+	blockHdr *free_list = map_to_list(head ->size);
+
+	//now that we have the free list and the head, we simply add
+	//the ehad immediately after the free list (it;s next)
+	
+	head ->prior_p = free_list;
+	head ->next_p = free_list->next_p;
+	free_list->next_p->prior_p = head;
+	free_list->next_p = head;
+}
 
 
 /*
