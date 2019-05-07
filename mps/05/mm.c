@@ -69,7 +69,8 @@ int mm_init(void)
 		return -1;
 	}
 
-	//create the heads of the circularly linked double linked lists and set each list's previous pointer to itself
+	//create the heads of the circularly linked double linked lists 
+	//and set each list's previous pointer to itself
 	
 	int i;
 	blockHdr *curr_free_list_head = free_ist_head;
@@ -80,6 +81,7 @@ int mm_init(void)
 		LAST_LIST = curr_free_list_head; //keeps track of the last list for later use
 		curr_free_list_head = (blockHdr *)((char *)curr_free_list_head + BLK_HDR_SIZE);//go to next block head
 	}
+
 
 	//set the footer that seperates the heads to allocated
 	blockFtr *ftr = (blockFtr *)((char *)LAST_LIST + BLK_HDR_SIZE);
@@ -152,16 +154,64 @@ void *mm_malloc(size_t size)
 
 
 			 
-/*
-  void *p = mem_sbrk(newsize);
-  if ((long)p == -1)
-    return NULL;
-  else {
-    *(size_t *)p = size;
-    return (void *)((char *)p + SIZE_T_SIZE);
-  }
+void remove_from_free_lists(blockHdr *head){
+	//removes head from the free list which it belongs to
+	//remove if it's free
+	head->prior_p->next_p = head ->next_p;
+	head->next_p->prior_p = head ->prior_p;
 }
-*/
+
+
+
+blockHdr *split_block(int old_size, int new_size, blockHdr *head) {
+	//Assume new_size is already alligned
+
+	//splites a block into a smaller block and adds the remaining to a free list
+	//in order to split, the new_size minus the old_size must be greater than BLK_HDR_FTR_SIZE
+	//using 40 as a threshold for minimum size of payload
+	
+	if((old_size - new_size) > (BLK_HDR_FTR_SIZE + 40)){
+
+		//adjust the block's header and footer sizes
+		head ->size = new_size;
+		blockFtr *foot = (blockFtr *)((char *)head + new_size - BLK_FTR_SIZE);
+		foot ->size = new_size;
+
+		//now get the extra block
+		blockHdr *extra_head = (blockHdr *) ((char *) foot + (BLK_FTR_SIZE));
+		extra_head ->size = (old_size - new_size);
+
+		//get the extra block's foot
+		blockFtr *extra_block_foot = (blockFtr *)((char *)extra_head + extra_head ->size - BLK_FTR_SIZE);
+		extra_block_foot ->size = extra_head ->size;
+
+		//if the next block after extra_head is free
+		blockHdr *next_head = (blockHdr *)((char *)extra_head ->size - BLK_FTR_SIZE);
+		extra_block_foot ->size = extra_head ->size;
+
+
+		//if the next block after extra_head is free
+		blockHdr *next_head = (blockHdr *)((char *)extra_block_foot + BLK_FTR_SIZE);
+		extra_block_foot ->size = extra_head ->size;
+
+
+		//if the next block after extra_hand is free
+		blockHdr *next_head = (blockHdr *)((char *)extra_block_foot + BLK_FTR_SIZE);
+		if(!((next_head ->size)& (1))){
+			//coalease the extra head
+			coalease(extra_head);
+		}
+
+		
+		//now add the extra block to it's appropriate free list
+		add_to_free_lists(extra_head);
+	}
+
+	return head;
+}
+
+
+
 
 /*
  * mm_free - Freeing a block does nothing.
