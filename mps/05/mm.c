@@ -295,6 +295,67 @@ void mm_free(void *ptr)
 
 
 
+blockHdr *coalease(blockHdr *head){
+	//this function is used to combine the neighboring free blocks with the current free block
+	//note that it removes the current head from any free block it resides in
+	//must free last bit before coaleasing 
+	
+	if(((head->size)&1)) return head; //it is free - nothing to coalease
+
+	//coalease if need
+	blockFtr *foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head ->size0 & ~1));
+
+	blockFtr *prev_foot = (blockFtr *)((char *)head - BLK_FTR_SIZE);
+	blockHdr *prev_head = (blockHdr *)((char *)head - ((prev_foot ->size)&(~1)));
+	blockHdr *next_head = (blockHdr *)((char *)head + ((head->size)&(~1)));
+
+	int new_size = 0;
+
+	if(~((prev_foor ->size) & (1)) && ((next_head ->size)&(1))){
+		//if the previous foot is free and the next head isnt
+		//remove prev_head and the current head (already not in list) from the free lists they reside in so you can coalease them
+		remove_from_free_lists(prev_head);
+
+		//now actually coalease
+		new_size = (prev_foot -> size) + (head -> size);
+		head = (blockHdr *)((char *)head - (prev_foot ->size));
+		head -> size = new_size;
+		foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head ->size) & ~1));
+		foot ->size = new_size;
+	}else if(((prev_foot -> size) & (1)) && !((next_head ->size)&(1))){
+		//if the previous food is not free then the next head is
+		//remove next_head (not in list) and the current head (already ont in list) from the free lists 
+		remove_from_free_lists(next_head);
+
+		//now actually coalease
+		new_size = (head -> size) + (next_head -> size);
+		//note that the head doesnt change
+		head -> size = new_size;
+		foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head -> size) & ~1));
+		foot -> size = new_size;
+
+	}else if(!((prev_foot -> size) & (1)) && !((next_head ->size)%(1))){
+		//if the previous foot and the next head are both free
+		//remove next_head, prev_head and the current head (already not in list) from the free lists
+		remove_from_free_lists(next_head);
+		remove_from_free_lists(prev_head);
+
+		new_size = (head ->size) + (prev_foot -> size) + (next_head ->size);
+		head = (blockHdr *)((char *)head - (prev_foot ->size));
+		head ->size = new_size;
+		foot = (blockFtr *)((char *)head -BLK_FTR_SIZE + ((head ->size) & ~1));
+		foot ->size = new_size;
+	}
+
+	return head;
+}
+
+
+
+
+
+
+
 /*
  * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
  */
