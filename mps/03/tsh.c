@@ -165,18 +165,20 @@ int main(int argc, char **argv)
  */
 void eval(char *cmdline) 
 {
-  /* the following code demonstrates how to use parseline --- you'll 
-   * want to replace most of it (at least the print statements). */
+ 
   char *argv[MAXARGS];
+  //int to record for bg
   int bg;
   pid_t pid;			//process ID
   sigset_t mask;		//Signal set to block certain signals
  
+  // parse the line
+
   bg = parseline(cmdline, argv);
   //check if valid builtin_cmd  
   if(!builtin_cmd(argv)){
 	
-	// Blocking SIGCHILD
+	// blocking first
 	sigemptyset(&mask);				//initialize signal set 
 	sigaddset(&mask, SIGCHLD);		//adds SIGCHLD to the set
 	sigprocmask(SIG_BLOCK, &mask, NULL);	//adds signal in set to blocked		
@@ -195,7 +197,7 @@ void eval(char *cmdline)
 		}
 	}
 
-	//PARENT
+	// parent add job first
 	else {
 		if(!bg){	//foreground
 			addjob(jobs, pid, FG, cmdline);			//Add process to job list
@@ -207,9 +209,10 @@ void eval(char *cmdline)
 		
 		//if bg/fg
 		if (!bg){
-			waitfg(pid);					//Parent waits for foreground to terminate
+			//wait for fg
+			waitfg(pid);
 		} 
-		else {		//background 
+		else {	 
 			//print for bg
 			printf("[%d] (%d) %s", pid2jid(pid), pid, cmdline);
 		}
