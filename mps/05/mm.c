@@ -61,23 +61,23 @@ blockHdr *LAST_LIST = NULL; //keep track of the very last list
 /* 
  * mm_init - initialize the malloc package.
  */
-int mm_init(void)
+int mm_init(void){
 	//in order to initialize, I will create the header which will point to free blocks of various sizes
 	blockHdr *free_list_head = (blockHdr *) mem_sbrk(NUM_OF_FREE_LISTS * BLK_HDR_SIZE + BLK_FTR_SIZE);
 
-	if(free_list_head < o){
+	if(free_list_head < 0){
 		return -1;
 	}
 
-	//create the heads of the circularly linked double linked lists 
+	//create the heads of the circularly linked doubly linked lists 
 	//and set each list's previous pointer to itself
 	
 	int i;
-	blockHdr *curr_free_list_head = free_ist_head;
+	blockHdr *curr_free_list_head = free_list_head;
 	for(i=0; i<NUM_OF_FREE_LISTS; i++){
 		curr_free_list_head -> size = 1;
 		curr_free_list_head -> prior_p = curr_free_list_head;
-		curr_free_list_head -> next+p = curr_free_list_head;
+		curr_free_list_head -> next_p = curr_free_list_head;
 		LAST_LIST = curr_free_list_head; //keeps track of the last list for later use
 		curr_free_list_head = (blockHdr *)((char *)curr_free_list_head + BLK_HDR_SIZE);//go to next block head
 	}
@@ -87,7 +87,7 @@ int mm_init(void)
 	blockFtr *ftr = (blockFtr *)((char *)LAST_LIST + BLK_HDR_SIZE);
 	ftr -> size = 1;
 
-	//the epilogue is use to mark the end of the allocated blocks
+	//the epilogue is used to mark the end of the allocated blocks
 	blockHdr *epilogue = mem_sbrk(BLK_HDR_SIZE);
 	epilogue->size = BLK_HDR_SIZE | 1;
    return 0;
@@ -103,7 +103,7 @@ void *mm_malloc(size_t size)
 	//if we are given zero size, then there is nothing to malloc
 	if (size == 0) return NULL;
 	
-	int newsize = ALIGN(size + BLK_HDR_FTR_SIZE);
+	int new_size = ALIGN(size + BLK_HDR_FTR_SIZE);
 	
 	//check if there's a free block that will contain that size
 	blockHdr *free_block = find_fit(new_size);
@@ -113,7 +113,7 @@ void *mm_malloc(size_t size)
 		//note: keep track of epilogue before calling sbrk()!
 	
 		blockHdr *epilogue = GET_EPILOGUE;
-		epilogue->size = BLK_HDR_SIZEl
+		epilogue->size = BLK_HDR_SIZE;
 		
 		//call sbrk to get more space
 		free_block = mem_sbrk(new_size + BLK_HDR_SIZE);
@@ -126,11 +126,11 @@ void *mm_malloc(size_t size)
 		free_block = (blockHdr *) ((char *) free_block - epilogue->size);
 
 		//free_block size taking epilogue into account
-		free_block->size = ((epilogue0>size) + new_size) | 1;
+		free_block->size = ((epilogue->size) + new_size) | 1;
 
 		//now set the footer size of the newly created block
 		blockFtr *ftr = (blockFtr *) ((char *) free_block - BLK_FTR_SIZE + ((free_block->size) & ~1));
-		ftr->size = free_block->sizel
+		ftr->size = free_block->size;
 
 		//adjust the epilogue
 		epilogue = GET_EPILOGUE;
@@ -215,7 +215,7 @@ void *map_to_list(int size){
 		return list;
 	}else if (size < 540){
 		return list + 1;
-	}else if (size < 28080){
+	}else if (size < 2080){
 		return list + 2;
 	}else{
 		return list + 3;
@@ -226,7 +226,7 @@ void *map_to_list(int size){
 void *find_fit(size_t size){
 	blockHdr *LAST_LIST = mem_heap_lo() + (NUM_OF_FREE_LISTS-1)*BLK_HDR_SIZE;
 	//finds a free block within the set of free lists that matches the given size
-	blockHdr* list = map_to_lists(size);
+	blockHdr* list = map_to_list(size);
 
 	//now check all lists from that list to the last list
 	//in order to find a suitable free block
@@ -243,7 +243,7 @@ void *find_fit(size_t size){
 			
 		}
 	}
-	return NULL; //no free block find
+	return NULL; //no free block found
 }
 
 
@@ -257,7 +257,7 @@ void add_to_free_lists(blockHdr *head){
 	blockHdr *free_list = map_to_list(head ->size);
 
 	//now that we have the free list and the head, we simply add
-	//the ehad immediately after the free list (it;s next)
+	//the head immediately after the free list (it's next)
 	
 	head ->prior_p = free_list;
 	head ->next_p = free_list->next_p;
@@ -301,7 +301,7 @@ blockHdr *coalease(blockHdr *head){
 	if(((head->size)&1)) return head; //it is free - nothing to coalease
 
 	//coalease if need
-	blockFtr *foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head ->size0 & ~1));
+	blockFtr *foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head ->size) & ~1));
 
 	blockFtr *prev_foot = (blockFtr *)((char *)head - BLK_FTR_SIZE);
 	blockHdr *prev_head = (blockHdr *)((char *)head - ((prev_foot ->size)&(~1)));
@@ -309,7 +309,7 @@ blockHdr *coalease(blockHdr *head){
 
 	int new_size = 0;
 
-	if(~((prev_foor ->size) & (1)) && ((next_head ->size)&(1))){
+	if(~((prev_foot ->size) & (1)) && ((next_head ->size)&(1))){
 		//if the previous foot is free and the next head isnt
 		//remove prev_head and the current head (already not in list) from the free lists they reside in so you can coalease them
 		remove_from_free_lists(prev_head);
@@ -323,7 +323,7 @@ blockHdr *coalease(blockHdr *head){
 	
 	}else if(((prev_foot -> size) & (1)) && !((next_head ->size)&(1))){
 		//if the previous food is not free then the next head is
-		//remove next_head (not in list) and the current head (already ont in list) from the free lists 
+		//remove next_head (not in list) and the current head (already not in list) from the free lists 
 		remove_from_free_lists(next_head);
 
 		//now actually coalease
@@ -334,7 +334,7 @@ blockHdr *coalease(blockHdr *head){
 		foot -> size = new_size;
 
 
-	}else if(!((prev_foot -> size) & (1)) && !((next_head ->size)%(1))){
+	}else if(!((prev_foot -> size) & (1)) && !((next_head ->size)&(1))){
 		//if the previous foot and the next head are both free
 		//remove next_head, prev_head and the current head (already not in list) from the free lists
 		remove_from_free_lists(next_head);
@@ -355,8 +355,7 @@ blockHdr *coalease(blockHdr *head){
 /*
  * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
  */
-void *mm_realloc(void *ptr, size_t size)
-{
+void *mm_realloc(void *ptr, size_t size){
 	if (size == 0) {
 		//if newsize is 0, call mm_free(ptr) and return NULL
 		mm_free(ptr);
@@ -377,7 +376,7 @@ void *mm_realloc(void *ptr, size_t size)
 		//get next block after bp
 		blockHdr *next_block = (blockHdr *)((char *)bp + ((bp ->size) & ~1));
 		size_t next_block_size = ((next_block ->size) & ~1);
-		int next_block_size = ((next_block 0>size) & ~1);
+		int next_block_free = !((next_block ->size) & ~1);
 		size_t curr_block_size = ((bp ->size) & ~1);
 
 		if(new_size <= curr_block_size){
@@ -386,7 +385,7 @@ void *mm_realloc(void *ptr, size_t size)
 			return ptr;
 		
 		}else if(next_block_free && ((next_block_size + curr_block_size) >= new_size)){
-			//case 2 - If the next block after ptf is free and its size 
+			//case 2 - If the next block after ptr is free and its size 
 			//plus the size of ptr is >= the requested newsize, remove the free
 			//the size of ptr and return ptr
 			
@@ -405,7 +404,7 @@ void *mm_realloc(void *ptr, size_t size)
 	
 		}else if(next_block_free && is_last_block(next_block) ){
 			//case 3 - If the next block after bp is free, but its size plus the
-			//size of ptf is NOT >= the requested newsize, BUT this nexr
+			//size of ptr is NOT >= the requested newsize, BUT this next
 			//block is the 'last' block (before the epilogue), call
 			//sbrk() to get additional size and rewrite the header and 
 			//then the footer of bp to change the size of bp. return ptr. 
@@ -414,13 +413,13 @@ void *mm_realloc(void *ptr, size_t size)
 			remove_from_free_lists(next_block);
 
 			//get additional size that should be allocated
-			int add_size = new_size - (new_block_size + curr_block_size);
+			int add_size = new_size - (next_block_size + curr_block_size);
 			
 			//get current epilogue 
 			blockHdr *epilogue = GET_EPILOGUE;
 			epilogue -> size = BLK_HDR_SIZE;
 
-			//now allocated this size by using sbrk
+			//now allocate this size by using sbrk
 			blockHdr *free_block = mem_sbrk(add_size);
 			
 			//if there's an error during allocation return NULL
@@ -428,7 +427,7 @@ void *mm_realloc(void *ptr, size_t size)
 
 			//then set the header and footer sizes to reflect this change
 			bp ->size = new_size|1;
-			blockFtr *foor = (blockFtr *)((char *)bp + ((bp ->size) & (~1)) - BLK_FTR_SIZE);
+			blockFtr *foot = (blockFtr *)((char *)bp + ((bp ->size) & (~1)) - BLK_FTR_SIZE);
 			foot ->size = bp ->size;
 			
 			//adjust the epilogue
@@ -438,7 +437,7 @@ void *mm_realloc(void *ptr, size_t size)
 			epilogue->size = BLK_HDR_SIZE | 1;
 
 			//return newly extended block (actually payload)
-			reutn (void *)((char *)bp + BLK_HDR_SIZE);
+			return (void *)((char *)bp + BLK_HDR_SIZE);
 	
 		}else if(is_last_block(bp)){
 			//case 4 - if bp is the 'last' block (before the epilogue), call
@@ -467,7 +466,7 @@ void *mm_realloc(void *ptr, size_t size)
 			epilogue = GET_EPILOGUE;
 			epilogue->next_p = epilogue;
 			epilogue->prior_p = epilogue;
-			epilogue->size = NLK_HDR_SIZE | 1;
+			epilogue->size = BLK_HDR_SIZE | 1;
 
 			//return newly extended block (actually payload)
 			return (void *)((char *)bp + BLK_HDR_SIZE);
@@ -478,7 +477,7 @@ void *mm_realloc(void *ptr, size_t size)
 			//malloc with the new size
 			void *new_blk = mm_malloc(size);
 
-			//copoy payload
+			//copy payload
 			memcpy(new_blk,ptr,curr_block_size);
 			
 			//free previous block (ptr)
@@ -506,12 +505,12 @@ int mm_check()
 	//heap consistency checker. Just two cases are checked
 	//others are fairly straightfoward
 	
-	//check if all free blocks are actuallu free
+	//check if all free blocks are actually free
 	int k = NUM_OF_FREE_LISTS-1;
 	blockHdr *list_start = (blockHdr *)mem_heap_lo();
 	LAST_LIST = list_start + k;
 
-	if error_f = 0;
+	int error_f = 0;
 	//check all the free blocks until you get to the start again
 	
 	for(;(list_start<=LAST_LIST)&& !error_f;list_start = list_start +1){
@@ -529,7 +528,7 @@ int mm_check()
 	
 	if(error_f >0) return error_f; //return a flag for error
 
-	//check whether handlers and footers actually have the same size
+	//check whether headers and footers actually have the same size
 	
 	blockHdr *alloc_start = (blockHdr *)((char *)LAST_LIST + BLK_HDR_FTR_SIZE);
 
