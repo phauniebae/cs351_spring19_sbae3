@@ -7,7 +7,6 @@
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>
-
 #include "mm.h"
 #include "memlib.h"
 
@@ -16,7 +15,6 @@
 
 /* rounds up to the nearest multiple of ALIGNMENT */
 #define ALIGN(size) (((size) + (ALIGNMENT-1)) & ~0x7)
-
 #define SIZE_T_SIZE (ALIGN(sizeof(size_t)))
 #define BLK_HDR_SIZE ALIGN(sizeof(blockHdr))
 #define BLK_FTR_SIZE ALIGN(sizeof(blockFtr))
@@ -51,6 +49,9 @@ int mm_check();
 int is_last_block(blockHdr *head);
 
 
+
+
+
 //other constants and variables
 static int NUM_OF_FREE_LISTS = 4;
 blockHdr *LAST_LIST = NULL; //keep track of the very last list 
@@ -62,7 +63,9 @@ blockHdr *LAST_LIST = NULL; //keep track of the very last list
  * mm_init - initialize the malloc package.
  */
 int mm_init(void){
-	//in order to initialize, I will create the header which will point to free blocks of various sizes
+	//in order to initialize, create the header which will point to free blocks 
+	//of various sizes
+	
 	blockHdr *free_list_head = (blockHdr *) mem_sbrk(NUM_OF_FREE_LISTS * BLK_HDR_SIZE + BLK_FTR_SIZE);
 
 	if(free_list_head < 0){
@@ -87,11 +90,15 @@ int mm_init(void){
 	blockFtr *ftr = (blockFtr *)((char *)LAST_LIST + BLK_HDR_SIZE);
 	ftr -> size = 1;
 
+
 	//the epilogue is used to mark the end of the allocated blocks
 	blockHdr *epilogue = mem_sbrk(BLK_HDR_SIZE);
 	epilogue->size = BLK_HDR_SIZE | 1;
    return 0;
 }
+
+
+
 
 
 /* 
@@ -110,7 +117,7 @@ void *mm_malloc(size_t size)
 
 	if (free_block == NULL ){
 		//if there's no free block, we create one 
-		//note: keep track of epilogue before calling sbrk()!
+		//keep track of epilogue before calling sbrk()
 	
 		blockHdr *epilogue = GET_EPILOGUE;
 		epilogue->size = BLK_HDR_SIZE;
@@ -137,6 +144,7 @@ void *mm_malloc(size_t size)
 		epilogue->next_p = epilogue;
 		epilogue->prior_p = epilogue;
 		epilogue->size = BLK_HDR_SIZE | 1;
+
 	} else{
 		//otherwise, use the free block!
 		//if there is too much space, split the space and put remainder in appropriate free list
@@ -155,6 +163,8 @@ void *mm_malloc(size_t size)
 
 
 			 
+
+
 void remove_from_free_lists(blockHdr *head){
 	//removes head from the free list which it belongs to
 	//remove if it's free
@@ -164,11 +174,15 @@ void remove_from_free_lists(blockHdr *head){
 
 
 
+
+
+
 blockHdr *split_block(int old_size, int new_size, blockHdr *head) {
 	//Assume new_size is already alligned
 
-	//splites a block into a smaller block and adds the remaining to a free list
-	//in order to split, the new_size minus the old_size must be greater than BLK_HDR_FTR_SIZE
+	//splits a block into a smaller block and adds the remaining to a free list
+	//in order to split, the new_size 
+	//minus the old_size must be greater than BLK_HDR_FTR_SIZE
 	//using 40 as a threshold for minimum size of payload
 	
 	if((old_size - new_size) > (BLK_HDR_FTR_SIZE + 40)){
@@ -186,9 +200,6 @@ blockHdr *split_block(int old_size, int new_size, blockHdr *head) {
 		blockFtr *extra_block_foot = (blockFtr *)((char *)extra_head + extra_head ->size - BLK_FTR_SIZE);
 		extra_block_foot ->size = extra_head ->size;
 
-		//if the next block after extra_head is free
-		blockHdr *next_head = (blockHdr *)((char *)extra_head ->size - BLK_FTR_SIZE);
-		extra_block_foot ->size = extra_head ->size;
 
 		//if the next block after extra_hand is free
 		blockHdr *next_head = (blockHdr *)((char *)extra_block_foot + BLK_FTR_SIZE);
@@ -206,6 +217,7 @@ blockHdr *split_block(int old_size, int new_size, blockHdr *head) {
 }
 
 
+
 void *map_to_list(int size){
 
 	//given a certain size, this function returns a pointer to it's corresponding free list
@@ -221,6 +233,8 @@ void *map_to_list(int size){
 		return list + 3;
 	}
 }
+
+
 
 
 void *find_fit(size_t size){
@@ -248,6 +262,7 @@ void *find_fit(size_t size){
 
 
 
+
 void add_to_free_lists(blockHdr *head){
 	//adds a block to the free list
 	//check for boundary conditions
@@ -270,7 +285,8 @@ void add_to_free_lists(blockHdr *head){
 /*
  * mm_free - Freeing a block does nothing.
  */
-void mm_free(void *ptr)
+
+/*void mm_free(void *ptr)
 {
 	//frees a block
 	//in order to free a block, simply set it's size to not allocated and place it in a free list
@@ -348,7 +364,7 @@ blockHdr *coalease(blockHdr *head){
 	}
 
 	return head;
-}
+}*/
 
 
 
@@ -363,6 +379,7 @@ void *mm_realloc(void *ptr, size_t size){
 	}else if (ptr == NULL){
 		//if ptr is NULL, call and return mm_malloc(ptr)
 		return mm_malloc(size);
+	
 	}else if(size > 0){
 		//Otherwise: Return a block of size >= newsize that preserves 
 		//all the data from the payload of the block ptr
@@ -498,6 +515,96 @@ int is_last_block(blockHdr *head){
 	if((blockHdr *)((char *)head + ((head ->size) & (~1)))>= epilogue) return 1;
 	return 0;
 }
+
+
+
+void mm_free(void *ptf){
+
+	//frees a block
+	//in order to free a block, simply set it's size to not allocated and place it in a free list
+	
+	if(ptr == NULL) return;
+
+	blockHdr *head = (blockHdr *)((char *)ptr - BLK_HDR_SIZE);
+	blockFtr *foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head -> size) & ~1));
+
+	//now set it to not allocated
+	//free the block
+	(head ->size) &= ~1;
+	(food ->size_ &= ~1;
+
+	 //coalease and add to free list
+	 head = coalease(head);
+
+	 //add to appropriate free list
+	 add_to_free_lists(head);
+}
+
+
+
+blockHdr *coalease(blockHdr *head){
+	
+	//this function is used to combine the neighbouring free blocks with the current free block
+	//It removes the current head from any free block it resides in
+	
+	if(((head->size)&1)) return head; //it isn't free. Nothing to coalease
+
+	//coalease if there's anything to coalease
+	blockFtr *foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head ->size) & ~1));
+
+	//now we have the head and the foot
+	blockFtr *prev_foot = (blockFtr *)((char *)head - BLK_FTR_SIZE);
+	blockHdr *prev_head = (blockHdr *)((char *)head - ((prev_foot ->size)&(~1)));
+	blockHdr *next_head = (blockHdr *)((char *)head + ((head->size)&(~1)));
+
+	int new_size = 0;
+
+	if(!((prev_foot ->size) & (1)) && ((next_head ->size)&(1))){
+		//if the previous foot is free and the next head isn't
+
+		//remove prev_head and the current head (already not in list) from the free lists they reside in to coalease them
+		remove_from_free_lists(prev_head);
+
+		//now actually coalease
+		new_size = (prev_foot -> size) + (head -> size);
+		head = (blockHdr *)((char *)head - (prev_foot ->size));
+		head -> size = new_size;
+		foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head ->size) & ~1));
+		foot ->size = new_size;
+
+	}else if(((prev_foot -> size) & (1)) && !((next_head ->size)&(1))){
+		//if the previous foot is not free and the next head is
+
+		//remove next_head (not in list) and the current head (already not in list) from the free lists they reside in
+		remove_from_free_lists(next_head);
+
+		//now actually coalease
+		new_size = (head -> size) + (next_head -> size);
+		//head doesn't change
+		head -> size = new_size;
+		foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head -> size) & ~1));
+		foot -> size = new_size;
+
+	}else if(!((prev_foot -> size) & (1)) && !((next_head ->size)&(1))){
+		//if the previous foot and the next head are both free
+		
+		//remove next_head, prev_head and the current head (already not in list) from the free lists they reside in 
+		//to coalease them
+
+		remove_from_free_lists(next_head);
+		remove_from_free_lists(prev_head);
+
+		//now actually coalease
+		new_size = (head ->size) + (prev_foot -> size) + (next_head ->size);
+		head = (blockHdr *)((char *)head - (prev_foot ->size));
+		head ->size = new_size;
+		foot = (blockFtr *)((char *)head - BLK_FTR_SIZE + ((head ->size) & ~1));
+		foot ->size = new_size;
+	}
+
+	return head; //return the new head
+}
+
 
 
 
